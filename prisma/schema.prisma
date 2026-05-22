@@ -2,8 +2,8 @@
 // Stack: Next.js 16 + NextAuth.js v5 + PostgreSQL (Neon DB)
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
