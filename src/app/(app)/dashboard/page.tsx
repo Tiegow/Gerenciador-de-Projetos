@@ -1,49 +1,59 @@
+import { Suspense } from "react"
 import { auth } from "@/lib/auth"
-import { logout } from "@/app/actions/auth"
+import { redirect } from "next/navigation"
+import { StatsRow } from "./_components/stats-row"
+import { ProjectsGrid } from "./_components/projects-grid"
+import { RecentActivity } from "./_components/recent-activity"
+import { StatsRowSkeleton, ProjectsGridSkeleton, RecentActivitySkeleton } from "./_components/skeletons"
+import { NewProjectButton } from "./_components/new-project-button"
 
 export default async function DashboardPage() {
   const session = await auth()
 
+  if (!session) {
+    redirect("/auth/login")
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <div className="w-full max-w-md rounded-xl border border-neutral-800 bg-neutral-900/50 p-8">
-        <div className="mb-6 flex items-center gap-4">
-          {session?.user?.image ? (
-            <img
-              src={session.user.image}
-              alt={session.user.name ?? "Avatar"}
-              className="h-14 w-14 rounded-full border-2 border-indigo-500"
-            />
-          ) : (
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-xl font-bold text-white">
-              {session?.user?.name?.charAt(0)?.toUpperCase() ?? "U"}
-            </div>
-          )}
-          <div>
-            <h1 className="text-xl font-bold text-white">
-              Olá, {session?.user?.name ?? "Usuário"}! 👋
-            </h1>
-            <p className="text-sm text-neutral-400">{session?.user?.email}</p>
+    <div className="mx-auto max-w-7xl space-y-8">
+      {/* Header da Página */}
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Bem-vindo de volta, {session.user?.name?.split(" ")[0] || "Usuário"}!
+          </h1>
+          <p className="mt-1 text-sm text-neutral-400">
+            Aqui está um resumo do seu espaço de trabalho.
+          </p>
+        </div>
+        <NewProjectButton />
+      </div>
+
+      {/* Estatísticas (PPR) */}
+      <Suspense fallback={<StatsRowSkeleton />}>
+        <StatsRow />
+      </Suspense>
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Grid de Projetos (PPR) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Meus Projetos</h2>
           </div>
+          <Suspense fallback={<ProjectsGridSkeleton />}>
+            <ProjectsGrid />
+          </Suspense>
         </div>
 
-        <div className="mb-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
-          ✅ Autenticação funcionando — Sprint 2 concluído!
+        {/* Atividade Recente (PPR) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">Atividade</h2>
+          </div>
+          <Suspense fallback={<RecentActivitySkeleton />}>
+            <RecentActivity />
+          </Suspense>
         </div>
-
-        <p className="mb-6 text-sm text-neutral-400">
-          Esta é uma página temporária de dashboard. Na Sprint 3 ela será
-          substituída pelo dashboard real com a lista de projetos.
-        </p>
-
-        <form action={logout}>
-          <button
-            type="submit"
-            className="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-4 py-2.5 text-sm font-medium text-neutral-300 transition-all hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
-          >
-            Sair da conta
-          </button>
-        </form>
       </div>
     </div>
   )

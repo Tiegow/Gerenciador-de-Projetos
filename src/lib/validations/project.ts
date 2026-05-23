@@ -1,26 +1,21 @@
 import { z } from "zod"
 
-// ──────────────────────────────────────────────
-// Criar / Atualizar Projeto
-// ──────────────────────────────────────────────
 export const createProjectSchema = z.object({
   name: z
     .string()
-    .min(1, "O nome do projeto é obrigatório")
-    .max(100, "O nome deve ter no máximo 100 caracteres"),
-  description: z
-    .string()
-    .max(500, "A descrição deve ter no máximo 500 caracteres")
-    .optional(),
+    .min(3, "O nome do projeto deve ter no mínimo 3 caracteres")
+    .max(100, "O nome do projeto deve ter no máximo 100 caracteres"),
+  description: z.string().max(500, "A descrição não pode exceder 500 caracteres").optional().nullable(),
   color: z
     .string()
-    .regex(/^#[0-9A-Fa-f]{6}$/, "Cor inválida")
+    .regex(/^#([0-9A-F]{3}){1,2}$/i, "Cor inválida (deve ser hexadecimal, ex: #6366f1)")
     .default("#6366f1"),
 })
+
+export type CreateProjectInput = z.infer<typeof createProjectSchema>
 
 export const updateProjectSchema = createProjectSchema.partial().extend({
   status: z.enum(["ACTIVE", "ARCHIVED", "COMPLETED"]).optional(),
 })
 
-export type CreateProjectInput = z.infer<typeof createProjectSchema>
 export type UpdateProjectInput = z.infer<typeof updateProjectSchema>
