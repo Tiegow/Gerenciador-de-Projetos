@@ -1,4 +1,4 @@
-import type { MemberRole } from "@/generated/prisma"
+import type { MemberRole } from "@prisma/client"
 
 /**
  * Sessão do usuário retornada pelo NextAuth

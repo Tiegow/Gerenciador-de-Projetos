@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { BoardClient } from "@/components/board/board-client"
 import { BoardFilters } from "@/components/board/board-filters"
+import { InviteButton } from "@/components/board/invite-button"
 import { Suspense } from "react"
 import { Metadata } from "next"
 
@@ -57,8 +58,13 @@ export default async function ProjectBoardPage({
           tags: {
             include: { tag: true },
           },
+          comments: {
+            orderBy: { createdAt: "asc" },
+            include: { author: { select: { id: true, name: true, image: true, email: true } } }
+          }
         },
       },
+      tags: true, // Adicionado para carregar as tags do projeto
       members: {
         include: {
           user: {
@@ -88,21 +94,25 @@ export default async function ProjectBoardPage({
             />
             <h1 className="text-xl font-bold text-white">{project.name}</h1>
           </div>
-          {/* Opcional: Aqui entrarão os avatares dos membros e botão "Configurações" */}
-          <div className="flex -space-x-2">
-            {project.members.map((m) => (
-              <div
-                key={m.id}
-                className="h-8 w-8 rounded-full border-2 border-neutral-900 bg-neutral-800 flex items-center justify-center text-xs font-medium text-white overflow-hidden"
-                title={m.user.name || m.user.email}
-              >
-                {m.user.image ? (
-                  <img src={m.user.image} alt={m.user.name || ""} className="h-full w-full object-cover" />
-                ) : (
-                  (m.user.name || m.user.email).charAt(0).toUpperCase()
-                )}
-              </div>
-            ))}
+          <div className="flex items-center">
+            {/* Avatares dos membros */}
+            <div className="flex -space-x-2">
+              {project.members.map((m) => (
+                <div
+                  key={m.id}
+                  className="h-8 w-8 rounded-full border-2 border-neutral-900 bg-neutral-800 flex items-center justify-center text-xs font-medium text-white overflow-hidden"
+                  title={m.user.name || m.user.email}
+                >
+                  {m.user.image ? (
+                    <img src={m.user.image} alt={m.user.name || ""} className="h-full w-full object-cover" />
+                  ) : (
+                    (m.user.name || m.user.email).charAt(0).toUpperCase()
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <InviteButton projectId={project.id} />
           </div>
         </div>
         {project.description && (

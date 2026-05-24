@@ -91,10 +91,10 @@ export function TaskCard({ task }: TaskCardProps) {
             {priorityLabels[task.priority]}
           </span>
 
-          {/* Comentários/Anexos falsos por enquanto para visual premium */}
+          {/* Comentários/Anexos */}
           <div className="flex items-center gap-1 text-xs">
             <MessageSquare className="h-3 w-3" />
-            <span>0</span>
+            <span>{task.comments?.length || 0}</span>
           </div>
           <div className="flex items-center gap-1 text-xs">
             <Paperclip className="h-3 w-3" />

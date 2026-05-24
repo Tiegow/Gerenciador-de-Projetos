@@ -23,7 +23,7 @@ export async function ProjectsGrid() {
         take: 3,
         include: {
           user: {
-            select: { name: true, image: true },
+            select: { id: true, name: true, image: true },
           },
         },
       },

@@ -14,7 +14,7 @@ export async function GET() {
       where: {
         members: {
           some: {
-            userId: session.user.id,
+            userId: session.user?.id,
           },
         },
       },
@@ -64,7 +64,7 @@ export async function POST(req: Request) {
         color,
         members: {
           create: {
-            userId: session.user.id,
+            userId: session.user?.id,
             role: "OWNER",
           },
         },

@@ -37,6 +37,7 @@ export type TaskWithDetails = {
   columnId: string
   assignee: UserData | null
   tags: TaskTagData[]
+  comments?: any[]
 }
 
 export type ColumnWithTasks = {
@@ -52,6 +53,8 @@ type ProjectData = {
   id: string
   columns: any[]
   tasks: any[]
+  members: any[]
+  tags: any[]
 }
 
 interface BoardClientProps {
@@ -60,13 +63,14 @@ interface BoardClientProps {
 }
 
 export function BoardClient({ project, role }: BoardClientProps) {
-  const { columns, setColumns, moveTaskLocal, revertMove } = useBoardStore()
+  const { columns, setColumns, setProjectInfo, moveTaskLocal, revertMove } = useBoardStore()
   const [activeTask, setActiveTask] = useState<TaskWithDetails | null>(null)
   
   const canManageColumns = role === "OWNER" || role === "ADMIN"
 
   // Inicializar Zustand
   useEffect(() => {
+    setProjectInfo(project.id, project.members, project.tags)
     const initialColumns: ColumnWithTasks[] = project.columns.map((col) => ({
       ...col,
       tasks: project.tasks.filter((t: any) => t.columnId === col.id).sort((a: any, b: any) => a.order - b.order),
@@ -109,6 +113,7 @@ export function BoardClient({ project, role }: BoardClientProps) {
     if (activeId === overId) return
 
     const isActiveTask = active.data.current?.type === "Task"
+    const isActiveColumn = active.data.current?.type === "Column"
     const isOverTask = over.data.current?.type === "Task"
     const isOverColumn = over.data.current?.type === "Column"
 
@@ -127,12 +132,6 @@ export function BoardClient({ project, role }: BoardClientProps) {
         if (destCol) {
           const overTaskIndex = destCol.tasks.findIndex(t => t.id === overId)
           finalIndex = overTaskIndex >= 0 ? overTaskIndex : 0
-          
-          const activeTaskIndex = destCol.tasks.findIndex(t => t.id === activeId)
-          if (sourceColumnId === destColumnId && activeTaskIndex >= 0) {
-            // Lógica simples: se o destino estiver abaixo da origem, o splice deslocará a posição
-            // O Zustand moveTaskLocal lida com splice, então o target index é o index da posição final real
-          }
         }
       } else if (isOverColumn) {
         destColumnId = overId
@@ -154,6 +153,35 @@ export function BoardClient({ project, role }: BoardClientProps) {
           body: JSON.stringify({ columnId: destColumnId, order: finalIndex })
         })
         if (!res.ok) throw new Error("Falha ao mover tarefa")
+      } catch (err) {
+        console.error(err)
+        revertMove(snapshot)
+      }
+    } else if (isActiveColumn) {
+      // Arrastou a Coluna
+      const activeColIndex = columns.findIndex(c => c.id === activeId)
+      const overColIndex = columns.findIndex(c => c.id === overId)
+
+      if (activeColIndex === overColIndex) return
+
+      const snapshot = JSON.parse(JSON.stringify(columns))
+      
+      // Update Otimista Local
+      useBoardStore.getState().moveColumnLocal(activeId, overColIndex)
+
+      try {
+        // Enviar requisição para /reorder
+        // O body esperado pela API é: { columns: [{ id: "c1", order: 0 }, { id: "c2", order: 1 }] }
+        const newColumnsState = useBoardStore.getState().columns
+        const reorderPayload = newColumnsState.map(c => ({ id: c.id, order: c.order }))
+
+        const res = await fetch(`/api/projects/${project.id}/columns/reorder`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ columns: reorderPayload })
+        })
+        
+        if (!res.ok) throw new Error("Falha ao reordenar coluna")
       } catch (err) {
         console.error(err)
         revertMove(snapshot)

@@ -30,7 +30,7 @@ export async function GET(
     }
 
     // Check membership
-    const isMember = project.members.some((member) => member.userId === session.user.id)
+    const isMember = project.members.some((member) => member.userId === session.user?.id)
     if (!isMember) {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 })
     }
@@ -57,7 +57,7 @@ export async function PATCH(
     const member = await prisma.projectMember.findUnique({
       where: {
         userId_projectId: {
-          userId: session.user.id,
+          userId: session.user?.id,
           projectId: id,
         },
       },
@@ -104,7 +104,7 @@ export async function DELETE(
     const member = await prisma.projectMember.findUnique({
       where: {
         userId_projectId: {
-          userId: session.user.id,
+          userId: session.user?.id,
           projectId: id,
         },
       },

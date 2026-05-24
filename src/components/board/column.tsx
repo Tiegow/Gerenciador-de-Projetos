@@ -18,7 +18,61 @@ export function ColumnComponent({ column, projectId }: ColumnProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   
-  const { searchQuery, priorityFilter } = useBoardStore()
+  const [isEditing, setIsEditing] = useState(false)
+  const [columnName, setColumnName] = useState(column.name)
+  const inputRef = useRef<HTMLInputElement>(null)
+  
+  const { searchQuery, priorityFilter, renameColumnLocal, deleteColumnLocal } = useBoardStore()
+
+  // Focar o input ao entrar em modo de edição
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isEditing])
+
+  // Sincronizar o estado local com o prop da coluna (para atualizações otimistas e reversões)
+  useEffect(() => {
+    setColumnName(column.name)
+  }, [column.name])
+
+  const handleRenameSubmit = async () => {
+    if (!columnName.trim() || columnName === column.name) {
+      setIsEditing(false)
+      setColumnName(column.name)
+      return
+    }
+
+    const newName = columnName.trim()
+    setIsEditing(false)
+    renameColumnLocal(column.id, newName) // Optimistic
+
+    try {
+      const res = await fetch(`/api/columns/${column.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
+      })
+      if (!res.ok) throw new Error("Failed to rename column")
+    } catch (err) {
+      console.error(err)
+      renameColumnLocal(column.id, column.name) // Revert
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm(`Tem certeza que deseja excluir a coluna "${column.name}" e todas as suas tarefas?`)) return
+
+    deleteColumnLocal(column.id) // Optimistic
+
+    try {
+      const res = await fetch(`/api/columns/${column.id}`, { method: "DELETE" })
+      if (!res.ok) throw new Error("Failed to delete column")
+    } catch (err) {
+      console.error(err)
+      // Idealmente, recarregaríamos as colunas do servidor para reverter a deleção caso dê erro
+    }
+  }
 
   const filteredTasks = column.tasks.filter((task) => {
     const matchSearch = searchQuery
@@ -70,15 +124,44 @@ export function ColumnComponent({ column, projectId }: ColumnProps) {
     >
       {/* Header da Coluna */}
       <div 
-        className="flex items-center justify-between p-3 cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between p-3 cursor-grab active:cursor-grabbing group"
         {...attributes}
         {...listeners}
       >
-        <div className="flex items-center gap-2">
-          <h3 className="font-semibold text-neutral-200">{column.name}</h3>
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-700 text-xs font-medium text-neutral-300">
-            {filteredTasks.length}
-          </span>
+        <div className="flex items-center gap-2 flex-1 mr-2" onPointerDown={(e) => isEditing && e.stopPropagation()}>
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              value={columnName}
+              onChange={(e) => setColumnName(e.target.value)}
+              onBlur={handleRenameSubmit}
+              onKeyDown={(e) => {
+                e.stopPropagation() // Evita que o dnd-kit capture o Enter e inicie o drag pelo teclado
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  handleRenameSubmit()
+                }
+                if (e.key === "Escape") {
+                  setIsEditing(false)
+                  setColumnName(column.name)
+                }
+              }}
+              className="font-semibold text-neutral-200 bg-neutral-900 border border-indigo-500 rounded px-2 py-0.5 w-full text-sm outline-none"
+            />
+          ) : (
+            <>
+              <h3 
+                className="font-semibold text-neutral-200 cursor-text"
+                onPointerDown={(e) => e.stopPropagation()} 
+                onClick={() => setIsEditing(true)}
+              >
+                {column.name}
+              </h3>
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-neutral-700 text-xs font-medium text-neutral-300">
+                {filteredTasks.length}
+              </span>
+            </>
+          )}
         </div>
         
         <div className="relative" ref={menuRef}>
@@ -86,17 +169,30 @@ export function ColumnComponent({ column, projectId }: ColumnProps) {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             // Evitar que o clique no menu inicie um drag
             onPointerDown={(e) => e.stopPropagation()} 
-            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 transition-colors"
+            className="rounded-md p-1.5 text-neutral-400 hover:bg-neutral-700 hover:text-neutral-200 transition-colors opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+            data-state={isMenuOpen ? "open" : "closed"}
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
           
           {isMenuOpen && (
-            <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-md border border-neutral-700 bg-neutral-900 py-1 shadow-lg">
-              <button className="w-full px-3 py-1.5 text-left text-sm text-neutral-200 hover:bg-neutral-800 focus:bg-neutral-800">
+            <div className="absolute right-0 top-full z-10 mt-1 w-40 rounded-md border border-neutral-700 bg-neutral-900 py-1 shadow-lg" onPointerDown={(e) => e.stopPropagation()}>
+              <button 
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  setIsEditing(true)
+                }}
+                className="w-full px-3 py-1.5 text-left text-sm text-neutral-200 hover:bg-neutral-800 focus:bg-neutral-800"
+              >
                 Renomear coluna
               </button>
-              <button className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-red-500/10 focus:bg-red-500/10">
+              <button 
+                onClick={() => {
+                  setIsMenuOpen(false)
+                  handleDelete()
+                }}
+                className="w-full px-3 py-1.5 text-left text-sm text-red-400 hover:bg-red-500/10 focus:bg-red-500/10"
+              >
                 Excluir coluna
               </button>
             </div>

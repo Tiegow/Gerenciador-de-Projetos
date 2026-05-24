@@ -24,7 +24,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   isProjectModalOpen: false,
   projectToEdit: null,
-  openProjectModal: (project = null) => set({ isProjectModalOpen: true, projectToEdit: project || null }),
+  openProjectModal: (project) => set({ isProjectModalOpen: true, projectToEdit: project || null }),
   closeProjectModal: () => set({ isProjectModalOpen: false, projectToEdit: null }),
 
   isDeleteProjectModalOpen: false,
