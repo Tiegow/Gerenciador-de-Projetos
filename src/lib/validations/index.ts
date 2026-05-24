@@ -6,3 +6,6 @@ export type { CreateProjectInput, UpdateProjectInput } from "./project"
 
 export { createTaskSchema, updateTaskSchema, moveTaskSchema } from "./task"
 export type { CreateTaskInput, UpdateTaskInput, MoveTaskInput } from "./task"
+
+export { createColumnSchema, updateColumnSchema, reorderColumnsSchema } from "./column"
+export type { CreateColumnInput, UpdateColumnInput, ReorderColumnsInput } from "./column"

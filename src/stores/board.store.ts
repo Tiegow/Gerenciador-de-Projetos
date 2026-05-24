@@ -1,92 +1,82 @@
 import { create } from "zustand"
-import type {
-  Column,
-  Task,
-  Tag,
-  TaskTag,
-  User,
-} from "@/generated/prisma"
-
-// ──────────────────────────────────────────────
-// Tipos compostos para o Board
-// ──────────────────────────────────────────────
-
-export type TaskWithRelations = Task & {
-  tags: (TaskTag & { tag: Tag })[]
-  assignee: Pick<User, "id" | "name" | "image"> | null
-}
-
-export type ColumnWithTasks = Column & {
-  tasks: TaskWithRelations[]
-}
-
-// ──────────────────────────────────────────────
-// Board Store — estado otimista do Kanban
-// ──────────────────────────────────────────────
+import type { ColumnWithTasks, TaskWithDetails } from "@/components/board/board-client"
 
 interface BoardStore {
   columns: ColumnWithTasks[]
+  activeTaskId: string | null
+  searchQuery: string
+  priorityFilter: string | null
+  
   setColumns: (columns: ColumnWithTasks[]) => void
-
-  // Optimistic move: move task no estado local antes da request
-  moveTask: (
-    taskId: string,
-    fromColumnId: string,
-    toColumnId: string,
-    newOrder: number
-  ) => ColumnWithTasks[] // retorna snapshot para rollback
-
-  // Rollback em caso de erro na API
+  setActiveTaskId: (id: string | null) => void
+  setSearchQuery: (query: string) => void
+  setPriorityFilter: (priority: string | null) => void
+  
+  addColumn: (column: ColumnWithTasks) => void
+  addTask: (task: TaskWithDetails) => void
+  moveTaskLocal: (taskId: string, sourceColumnId: string, destColumnId: string, newIndex: number) => void
   revertMove: (snapshot: ColumnWithTasks[]) => void
 }
 
-export const useBoardStore = create<BoardStore>((set, get) => ({
+export const useBoardStore = create<BoardStore>((set) => ({
   columns: [],
-
+  activeTaskId: null,
+  searchQuery: "",
+  priorityFilter: null,
+  
   setColumns: (columns) => set({ columns }),
-
-  moveTask: (taskId, fromColumnId, toColumnId, newOrder) => {
-    const snapshot = structuredClone(get().columns)
-
-    set((state) => {
-      const columns = structuredClone(state.columns)
-
-      // Encontrar e remover a task da coluna de origem
-      const fromCol = columns.find((c) => c.id === fromColumnId)
-      if (!fromCol) return state
-
-      const taskIndex = fromCol.tasks.findIndex((t) => t.id === taskId)
-      if (taskIndex === -1) return state
-
-      const [task] = fromCol.tasks.splice(taskIndex, 1)
-
-      // Atualizar a task
-      task.columnId = toColumnId
-      task.order = newOrder
-
-      // Inserir na coluna de destino
-      const toCol = columns.find((c) => c.id === toColumnId)
-      if (!toCol) return state
-
-      toCol.tasks.splice(newOrder, 0, task)
-
-      // Reordenar todas as tasks da coluna de destino
-      toCol.tasks.forEach((t, i) => {
-        t.order = i
-      })
-
-      // Se mudou de coluna, reordenar a coluna de origem também
-      if (fromColumnId !== toColumnId) {
-        fromCol.tasks.forEach((t, i) => {
-          t.order = i
-        })
-      }
-
-      return { columns }
-    })
-
-    return snapshot
-  },
-
+  setActiveTaskId: (id) => set({ activeTaskId: id }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  setPriorityFilter: (priority) => set({ priorityFilter: priority }),
+  
+  addColumn: (column) => set((state) => ({ columns: [...state.columns, column] })),
+  
+  addTask: (task) => set((state) => {
+    const newColumns = [...state.columns]
+    const colIndex = newColumns.findIndex(c => c.id === task.columnId)
+    if (colIndex === -1) return state
+    
+    const col = { ...newColumns[colIndex], tasks: [...newColumns[colIndex].tasks, task] }
+    newColumns[colIndex] = col
+    
+    return { columns: newColumns }
+  }),
+  
+  moveTaskLocal: (taskId, sourceColumnId, destColumnId, newIndex) => set((state) => {
+    const newColumns = [...state.columns]
+    
+    const sourceColIndex = newColumns.findIndex(col => col.id === sourceColumnId)
+    const destColIndex = newColumns.findIndex(col => col.id === destColumnId)
+    
+    if (sourceColIndex === -1 || destColIndex === -1) return state
+    
+    const sourceCol = { ...newColumns[sourceColIndex], tasks: [...newColumns[sourceColIndex].tasks] }
+    const destCol = sourceColumnId === destColumnId 
+      ? sourceCol 
+      : { ...newColumns[destColIndex], tasks: [...newColumns[destColIndex].tasks] }
+      
+    // Encontrar a tarefa original
+    const taskIndex = sourceCol.tasks.findIndex(t => t.id === taskId)
+    if (taskIndex === -1) return state
+    
+    const [task] = sourceCol.tasks.splice(taskIndex, 1)
+    
+    // Inserir na nova posição
+    destCol.tasks.splice(newIndex, 0, { ...task, columnId: destColumnId })
+    
+    // Recalcular a ordem sequencial nas colunas afetadas (somente na UI, a persistência final fica para o backend)
+    sourceCol.tasks = sourceCol.tasks.map((t, i) => ({ ...t, order: i }))
+    if (sourceColumnId !== destColumnId) {
+      destCol.tasks = destCol.tasks.map((t, i) => ({ ...t, order: i }))
+    }
+    
+    newColumns[sourceColIndex] = sourceCol
+    if (sourceColumnId !== destColumnId) {
+      newColumns[destColIndex] = destCol
+    }
+    
+    return { columns: newColumns }
+  }),
+  
   revertMove: (snapshot) => set({ columns: snapshot }),
 }))
