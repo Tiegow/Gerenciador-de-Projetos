@@ -15,6 +15,14 @@
 
 ---
 
+## 🌐 Acesso ao Projeto em Produção
+
+O projeto encontra-se hospedado e pode ser acessado através do link abaixo:
+
+🔗 **[Acessar Gerenciador de Projetos (Deploy)](https://gerenciador-de-projetos-zeta.vercel.app/login)**
+
+---
+
 ## ✨ Funcionalidades Principais
 
 * 📋 **Painel Kanban Interativo**: Arraste e solte tarefas entre colunas para atualizar seu status dinamicamente utilizando a biblioteca `@dnd-kit`.
@@ -101,9 +109,3 @@ npm run test:watch
 ```
 
 ---
-
-## 🌐 Acesso ao Projeto em Produção
-
-O projeto encontra-se hospedado e pode ser acessado através do link abaixo:
-
-🔗 **[Acessar Gerenciador de Projetos (Deploy)](https://gerenciador-de-projetos-zeta.vercel.app/login)**
