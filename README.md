@@ -106,4 +106,4 @@ npm run test:watch
 
 O projeto encontra-se hospedado e pode ser acessado através do link abaixo:
 
-🔗 **[Acessar Gerenciador de Projetos (Deploy)](#)**
+🔗 **[Acessar Gerenciador de Projetos (Deploy)](https://gerenciador-de-projetos-zeta.vercel.app/login)**
