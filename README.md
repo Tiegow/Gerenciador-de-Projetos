@@ -31,6 +31,19 @@ O projeto encontra-se hospedado e pode ser acessado através do link abaixo:
 * 🤝 **Colaboração e Gestão**: Links de convites, comentários nas tarefas, definição de prazos, criação de tags customizáveis e designação de membros responsáveis.
 * 🧪 **Testes Automatizados**: Suíte de testes integrada usando **Vitest** e React Testing Library para componentes visuais e validação de dados (Zod).
 
+<p align="center">
+  <img alt="Task Details" src="ssts/Captura de tela 2026-05-29 152505.png" width="700" />
+</p>
+
+<p align="center">
+  <img alt="Kanban Dashboard" src="ssts/Captura de tela 2026-05-29 152311.png" width="700" />
+</p>
+
+<p align="center">
+  <img alt="Task Details" src="ssts/Captura de tela 2026-05-29 152417.png" width="700" />
+</p>
+
+
 ## 🛠️ Stack Tecnológica
 
 * **Frontend:** [Next.js 16](https://nextjs.org/) (App Router), [React 19](https://react.dev/), [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/), Lucide Icons.
